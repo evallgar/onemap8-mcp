@@ -15,7 +15,8 @@ SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # without touching a real Claude Desktop configuration.
 INSTALL_DIR="${ONEMAP_INSTALL_DIR:-$HOME/Library/Application Support/OneMap8 MCP}"
 CLAUDE_CONFIG="${ONEMAP_CLAUDE_CONFIG:-$HOME/Library/Application Support/Claude/claude_desktop_config.json}"
-DEFAULT_URL="https://platform.onemap8.com/api"
+# Replaced at package time by scripts/package-macos.mjs (ONEMAP_DEFAULT_URL).
+DEFAULT_URL="__ONEMAP_DEFAULT_URL__"
 NONINTERACTIVE="${ONEMAP_NONINTERACTIVE:-}"
 
 banner() { printf '\n%s\n' "${BOLD}$1${OFF}"; }
@@ -124,9 +125,15 @@ IFS= read -rs ONEMAP_TOKEN
 printf '\n'
 [ -n "${ONEMAP_TOKEN:-}" ] || die "No token was entered. Run the installer again."
 
-printf 'OneMap8 address %s: ' "${DIM}[$DEFAULT_URL]${OFF}"
-IFS= read -r ONEMAP_URL
-ONEMAP_URL="${ONEMAP_URL:-$DEFAULT_URL}"
+if [ "$DEFAULT_URL" = "__ONEMAP_DEFAULT_URL__" ]; then
+  printf 'OneMap8 address %s: ' "${DIM}e.g. https://tracking.example.com/api${OFF}"
+  IFS= read -r ONEMAP_URL
+  [ -n "${ONEMAP_URL:-}" ] || die "No address was entered. Run the installer again."
+else
+  printf 'OneMap8 address %s: ' "${DIM}[$DEFAULT_URL]${OFF}"
+  IFS= read -r ONEMAP_URL
+  ONEMAP_URL="${ONEMAP_URL:-$DEFAULT_URL}"
+fi
 
 banner "Checking that it works"
 

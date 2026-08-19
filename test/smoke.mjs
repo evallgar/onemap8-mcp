@@ -327,7 +327,7 @@ test('a malformed token is reported as a token problem, not a bad request', asyn
   // directly via a server that answers like the real one does.
   const cryptoFailure = createServer((req, res) => {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
-    res.end('java.lang.NegativeArraySizeException: -102\n\tat org.onemap.api.signature.CryptoManager.verify');
+    res.end('java.lang.NegativeArraySizeException: -102\n\tat org.onemap8.api.signature.CryptoManager.verify');
   });
   await new Promise((done) => cryptoFailure.listen(0, done));
 

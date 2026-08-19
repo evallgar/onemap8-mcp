@@ -6,9 +6,9 @@ in plain language, instead of clicking through report screens.
 Ask things like:
 
 > Which vehicles are online right now?
-> Where is MOBI 034?
-> How far did the MOBI buses drive last week?
-> Email me the trips report for group 3, Monday to Friday.
+> Where is <vehicle name>?
+> How far did the delivery vans drive last week?
+> Email me the trips report for the vans, Monday to Friday.
 > Which vehicles raised alarms overnight?
 
 **You will only ever see the vehicles your own OneMap account can already see.** The connector uses
@@ -35,13 +35,10 @@ one — that invalidates the old one.
 Runs on your own machine. Needs **Node 20+** (`node -v` to check).
 
 ```bash
-git clone "https://grabita.visualstudio.com/Onemap8%20MCP%20Server/_git/Onemap8%20MCP%20Server" onemap8-mcp
+git clone https://github.com/evallgar/onemap8-mcp.git onemap8-mcp
 cd onemap8-mcp
 npm run setup
 ```
-
-Keep the quotes — the URL contains encoded spaces. If the clone asks for credentials, use your Azure
-DevOps email and a personal access token with **Code (Read)** scope, not your account password.
 
 `npm run setup` installs, builds, asks for your API URL and token (hidden input), verifies both
 against the live server, and prints the exact config block to paste into your client. It writes
@@ -69,7 +66,7 @@ Please try these and report what happens — especially anything that reads as c
 
 **Things that should fail cleanly**
 - A vehicle name that doesn't exist — you should get a clear "no device matches", not a wrong guess.
-- An ambiguous name like "MOBI" — should list the candidates and ask, not silently pick one.
+- A name that matches several vehicles — should list the candidates and ask, not silently pick one.
 - A vehicle that has never reported — should say so, not show an empty result.
 
 **Worth reporting**

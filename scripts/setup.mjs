@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ENV_PATH = join(ROOT, '.env');
-const DEFAULT_URL = 'https://platform.onemap8.com/api';
+const DEFAULT_URL = process.env.ONEMAP_DEFAULT_URL || 'https://tracking.example.com/api';
 
 const style = {
   bold: (s) => `[1m${s}[0m`,

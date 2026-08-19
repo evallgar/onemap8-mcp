@@ -45,8 +45,20 @@ rmSync(join(STAGE, 'package-lock.json'), { force: true });
 
 console.log('▸ Adding the installer');
 const installer = join(STAGE, 'install.command');
-cpSync(join(ROOT, 'packaging', 'install.command'), installer);
+// Bake the operator's own server in as the default, so their recipient does
+// not have to type a URL. Public builds leave the placeholder, which makes the
+// installer prompt for the address instead.
+const defaultUrl = process.env.ONEMAP_DEFAULT_URL ?? '__ONEMAP_DEFAULT_URL__';
+writeFileSync(
+  installer,
+  readFileSync(join(ROOT, 'packaging', 'install.command'), 'utf8').replaceAll('__ONEMAP_DEFAULT_URL__', defaultUrl),
+);
 chmodSync(installer, 0o755);
+console.log(
+  defaultUrl === '__ONEMAP_DEFAULT_URL__'
+    ? '  (no ONEMAP_DEFAULT_URL set — the installer will ask the recipient for the server address)'
+    : `  default server: ${defaultUrl}`,
+);
 
 writeFileSync(
   join(STAGE, 'READ ME FIRST.txt'),
