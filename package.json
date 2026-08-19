@@ -1,0 +1,38 @@
+{
+  "name": "onemap8-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing the OneMap8 fleet tracking API to Claude, ChatGPT and other MCP clients",
+  "type": "module",
+  "bin": {
+    "onemap8-mcp": "dist/stdio.js"
+  },
+  "main": "dist/server.js",
+  "files": [
+    "dist",
+    "scripts",
+    ".env.example",
+    "README.md",
+    "TESTERS.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/stdio.js",
+    "start:http": "node dist/http.js",
+    "test": "npm run build && node --test test/smoke.mjs",
+    "typecheck": "tsc --noEmit",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/stdio.js",
+    "setup": "node scripts/setup.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
