@@ -25,7 +25,8 @@
     "test": "npm run build && node --test test/smoke.mjs",
     "typecheck": "tsc --noEmit",
     "inspect": "npx @modelcontextprotocol/inspector node dist/stdio.js",
-    "setup": "node scripts/setup.mjs"
+    "setup": "node scripts/setup.mjs",
+    "package": "node scripts/package-macos.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
