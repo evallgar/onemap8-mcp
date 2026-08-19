@@ -17,7 +17,7 @@ and proxies to it.
 
 ```bash
 sudo useradd --system --home /opt/onemap8-mcp --shell /usr/sbin/nologin onemap-mcp
-sudo git clone <repo-url> /opt/onemap8-mcp
+sudo git clone "https://grabita.visualstudio.com/Onemap8%20MCP%20Server/_git/Onemap8%20MCP%20Server" /opt/onemap8-mcp
 cd /opt/onemap8-mcp
 sudo npm ci && sudo npm run build
 sudo chown -R onemap-mcp:onemap-mcp /opt/onemap8-mcp
