@@ -357,3 +357,14 @@ test('a malformed token is reported as a token problem, not a bad request', asyn
   await mcp.close();
   cryptoFailure.close();
 });
+
+test('passthrough deployments boot without credentials of their own', async () => {
+  const { configFromEnv } = await import('../dist/config.js');
+  const env = { ONEMAP_URL: 'https://example.com/api' };
+
+  // The production HTTP configuration deliberately holds no credential.
+  assert.throws(() => configFromEnv(env), /No credentials configured/);
+  const config = configFromEnv(env, { allowMissingCredentials: true });
+  assert.equal(config.token, undefined);
+  assert.equal(config.baseUrl, 'https://example.com/api');
+});

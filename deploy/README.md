@@ -1,22 +1,22 @@
-# Deploying the hosted endpoint
+# Step one — the hosted endpoint
 
-Replace `$MCP_HOST` with the hostname you want the endpoint on (e.g. `mcp.example.com`)
-and `$TRACKING_HOST` with your existing OneMap8 hostname throughout.
+Puts the MCP server on the machine already running your Onemap8 instance, reachable at
+`https://YOUR-HOST/mcp`.
 
-Target host: the server already running your OneMap8 instance behind Apache 2.
-Point an `mcp.` subdomain at that host, then add a certificate for it, an Apache vhost, and the
-MCP service itself.
+**Nothing new is provisioned.** No second machine, no subdomain, no extra certificate, no database,
+no third-party service. One more Node process on an existing box, listening on `127.0.0.1:3000`,
+plus three lines in the Apache vhost you already have.
 
-The MCP process listens on `127.0.0.1:3000` and is never exposed directly — Apache terminates TLS
-and proxies to it.
+Customers authenticate with their own Onemap8 API token, so each one sees exactly the vehicles
+their account already permits. The server holds no credential of its own.
 
-> **The risk to manage:** `$TRACKING_HOST` is live traffic. An Apache config error blocks the
-> reload for *every* site on the host, not just the new one. That is why the certificate is obtained
-> before any SSL vhost references it, and why `apache2ctl configtest` runs before every reload.
+> **The one risk:** your web app is live traffic on this host. An Apache syntax error blocks the
+> reload for *every* site, not just this one. `configtest` before every reload is what prevents
+> that, and it is in the steps below.
 
 ---
 
-## 1. Install and build
+## 1. Install
 
 ```bash
 sudo useradd --system --home /opt/onemap8-mcp --shell /usr/sbin/nologin onemap-mcp
@@ -26,7 +26,7 @@ sudo npm ci && sudo npm run build
 sudo chown -R onemap-mcp:onemap-mcp /opt/onemap8-mcp
 ```
 
-Node 20+ is required (`node -v`).
+Node 20+ required (`node -v`).
 
 ## 2. Configure
 
@@ -36,113 +36,111 @@ sudo -u onemap-mcp chmod 600 .env
 sudo -u onemap-mcp nano .env
 ```
 
-For a multi-user deployment:
-
 ```ini
-ONEMAP_URL=http://127.0.0.1:8082/api      # your Onemap8 port; same host, so no TLS round-trip
-ONEMAP_TOKEN=                             # leave empty; each request brings its own
-ONEMAP_HTTP_PASSTHROUGH_AUTH=true         # testers are scoped to their own OneMap permissions
-ONEMAP_READONLY=true                      # start here for the first testing round
-ONEMAP_ALLOW_COMMANDS=false               # no vehicle commands from a shared endpoint
+# Same machine, so talk to the app directly and skip the TLS round-trip.
+ONEMAP_URL=http://127.0.0.1:8082/api
+
+# Empty on purpose. Every request carries its own token.
+ONEMAP_TOKEN=
+ONEMAP_HTTP_PASSTHROUGH_AUTH=true
+
+# A shared endpoint should not be able to change anything or reach hardware.
+ONEMAP_READONLY=true
+ONEMAP_ALLOW_COMMANDS=false
 ONEMAP_ALLOW_DANGEROUS=false
+
 PORT=3000
-ONEMAP_ALLOWED_ORIGINS=                   # empty rejects browser cross-origin requests
+ONEMAP_ALLOWED_ORIGINS=
 ```
 
-`ONEMAP_TOKEN` empty plus passthrough means the service holds no credential of its own: a request
-without a valid tester token can't reach any data. Note the process still validates config at boot,
-so if you leave the token empty you must keep passthrough on.
+With `ONEMAP_TOKEN` empty and passthrough on, the service has no credential of its own — a request
+without a valid customer token cannot reach any data.
 
-## 3. Start the service
+## 3. Start it
 
 ```bash
 sudo cp deploy/onemap8-mcp.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now onemap8-mcp
 sudo systemctl status onemap8-mcp
-curl -s localhost:3000/health          # {"status":"ok",...}
+
+curl -s localhost:3000/mcp/health      # {"status":"ok",...}
 ```
 
-## 4. Port-80 vhost, then the certificate
+If this works, the hard part is done — everything after it is one Apache edit.
+
+## 4. Expose it through Apache
+
+Back up the vhost first:
 
 ```bash
-sudo cp deploy/apache-step1-http.conf \
-     /etc/apache2/sites-available/$MCP_HOST.conf
-sudo a2ensite $MCP_HOST
-sudo apache2ctl configtest && sudo systemctl reload apache2
-
-sudo certbot certonly --webroot -w /var/www/html -d $MCP_HOST
-sudo ls -l /etc/letsencrypt/live/$MCP_HOST/fullchain.pem
+sudo cp /etc/apache2/sites-available/YOUR-SITE.conf /root/YOUR-SITE.conf.bak
+sudo a2enmod proxy proxy_http headers env setenvif
 ```
 
-`certonly --webroot` obtains the certificate **without** letting certbot rewrite your Apache config,
-so the working `$TRACKING_HOST` vhost is left alone.
-
-Do not continue until that `ls` shows the file.
-
-## 5. SSL vhost
+Open the `<VirtualHost *:443>` block that serves your app and paste in the block from
+[`apache-snippet.conf`](apache-snippet.conf) — **above** the existing `ProxyPass / http://localhost:8082/`
+line, because Apache takes the first matching rule and `/` matches everything.
 
 ```bash
-sudo a2enmod proxy proxy_http ssl rewrite headers env setenvif
-
-sudo tee -a /etc/apache2/sites-available/$MCP_HOST.conf \
-     < deploy/apache-step2-ssl.conf
-
-sudo apache2ctl configtest && sudo systemctl reload apache2
+sudo apache2ctl configtest        # must say "Syntax OK"
+sudo systemctl reload apache2
 ```
 
-If `configtest` complains about overlapping defaults, see the note at the top of the step-2 file:
-`$TRACKING_HOST` uses `<VirtualHost _default_:443>` and this one uses `<VirtualHost *:443>`;
-make the two forms agree, keeping the tracking vhost first so it stays the fallback.
+If `configtest` fails, fix it or restore the backup. Do not reload on a failed configtest.
 
-## 6. Verify from your laptop
+## 5. Verify
 
 ```bash
-curl -s https://$MCP_HOST/health
+curl -s https://YOUR-HOST/mcp/health
 
-curl -s -X POST https://$MCP_HOST/mcp \
+curl -s -X POST https://YOUR-HOST/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -H "Authorization: Bearer $YOUR_ONEMAP_TOKEN" \
+  -H "Authorization: Bearer YOUR_ONEMAP_TOKEN" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | head -c 300
 ```
 
-Expect `{"status":"ok"…}` then a tool list. Checks worth making:
+Then check the things that actually matter:
 
-- **Certificate covers the new name:**
-  `echo | openssl s_client -connect $MCP_HOST:443 -servername $MCP_HOST 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName`
-- **$TRACKING_HOST still works** — load the web UI. This is the one that matters.
-- **A request with no token is refused**, and one with another user's token returns only that user's
-  devices.
+- **Your web app still works.** Load it in a browser. This is the one that counts.
+- **A request with no token is refused.**
+- **Another user's token returns only their devices.**
+
+## 6. Give a customer the URL
+
+They add a custom connector in Claude (Settings → Connectors) pointing at `https://YOUR-HOST/mcp`,
+and supply their own Onemap8 token from Settings → Preferences.
+
+That token step is the friction OAuth removes later. Everything here stays as-is when OAuth lands —
+it goes into this same process, not a new one.
+
+---
 
 ## Operating
 
 ```bash
-sudo journalctl -u onemap8-mcp -f          # service logs
-sudo systemctl restart onemap8-mcp         # after a rebuild
-sudo tail -f /var/log/apache2/$MCP_HOST.error.log
+sudo journalctl -u onemap8-mcp -f
+sudo systemctl restart onemap8-mcp        # after a rebuild
 ```
 
-To deploy a change: `git pull && npm ci && npm run build && sudo systemctl restart onemap8-mcp`.
+Deploy a change: `git pull && npm ci && npm run build && sudo systemctl restart onemap8-mcp`.
 
-Certificate renewal is handled by the existing certbot timer; `certonly --webroot` registers the
-renewal automatically. Confirm with `sudo certbot renew --dry-run`.
+## Rolling back
 
-### Rolling back
-
-The endpoint is additive — nothing about `$TRACKING_HOST` changes. To remove it entirely:
+Entirely additive — remove the snippet from the vhost and the endpoint is gone. Nothing about the
+web app changes either way.
 
 ```bash
-sudo a2dissite $MCP_HOST
+sudo cp /root/YOUR-SITE.conf.bak /etc/apache2/sites-available/YOUR-SITE.conf
 sudo apache2ctl configtest && sudo systemctl reload apache2
 sudo systemctl disable --now onemap8-mcp
 ```
 
-### Before opening it beyond internal testers
+## Known limits at this stage
 
-- There is no OAuth — anyone with a valid OneMap token can use the endpoint. That is the same bar as
-  the API itself, but it means the endpoint is only as private as your tokens.
-- No rate limiting. A misbehaving client can generate load on Onemap8; consider `mod_ratelimit` or a
-  `MaxRequestWorkers` review if usage grows.
-- Every tester's token is a full-access credential for their account. Revoking one is done from that
-  user's own Settings → Preferences, or by disabling the user.
+- **No rate limiting.** A misbehaving client generates load on your tracking server. Worth adding
+  `mod_ratelimit` or a reverse-proxy limit before this goes past a handful of customers.
+- **Token auth only.** Customers paste a token; OAuth is the next step.
+- **Customer fleet data reaches the AI provider** when they ask a question. Tell them before they
+  connect.

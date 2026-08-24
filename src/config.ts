@@ -74,7 +74,21 @@ export function normalizeBaseUrl(raw: string): string {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
-export function configFromEnv(env: NodeJS.ProcessEnv = process.env): OneMapConfig {
+export interface ConfigOptions {
+  /**
+   * Allow booting without credentials.
+   *
+   * A multi-tenant HTTP deployment deliberately holds no credential of its
+   * own — every request carries the caller's token — so demanding one at
+   * startup would make the intended production configuration unstartable.
+   */
+  allowMissingCredentials?: boolean;
+}
+
+export function configFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  options: ConfigOptions = {},
+): OneMapConfig {
   const url = env.ONEMAP_URL;
   if (!url) {
     throw new Error(
@@ -86,7 +100,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): OneMapConfi
   const email = env.ONEMAP_EMAIL?.trim() || undefined;
   const password = env.ONEMAP_PASSWORD || undefined;
 
-  if (!token && !(email && password)) {
+  if (!token && !(email && password) && !options.allowMissingCredentials) {
     throw new Error(
       'No credentials configured. Set ONEMAP_TOKEN, or both ONEMAP_EMAIL and ONEMAP_PASSWORD.',
     );
