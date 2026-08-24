@@ -16,19 +16,53 @@ their account already permits. The server holds no credential of its own.
 
 ---
 
-## 1. Install
+## 1. Node, system-wide
+
+systemd runs services with no user shell and no `PATH` from your profile, so a per-user Node
+install (nvm, fnm) is invisible to it — and to `sudo`. If `sudo npm` reports
+`command not found`, that is why, and the service would fail to start for the same reason.
+
+Check what you have:
+
+```bash
+which node; sudo which node; node -v
+```
+
+If `sudo which node` prints nothing, or the path is under a home directory, install Node
+system-wide:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+Then confirm the path the service file expects:
+
+```bash
+sudo which node    # want /usr/bin/node
+node -v            # want v20 or newer
+```
+
+If it reports a different path, update `ExecStart=` in `deploy/onemap8-mcp.service` to match.
+
+## 2. Install the server
 
 ```bash
 sudo useradd --system --home /opt/onemap8-mcp --shell /usr/sbin/nologin onemap-mcp
 sudo git clone https://github.com/evallgar/onemap8-mcp.git /opt/onemap8-mcp
-cd /opt/onemap8-mcp
-sudo npm ci && sudo npm run build
 sudo chown -R onemap-mcp:onemap-mcp /opt/onemap8-mcp
 ```
 
-Node 20+ required (`node -v`).
+Build as the service account rather than as root, so nothing in the tree ends up root-owned
+and unwritable by the service later:
 
-## 2. Configure
+```bash
+cd /opt/onemap8-mcp
+sudo -u onemap-mcp npm ci
+sudo -u onemap-mcp npm run build
+```
+
+## 3. Configure
 
 ```bash
 sudo -u onemap-mcp cp .env.example .env
@@ -56,7 +90,7 @@ ONEMAP_ALLOWED_ORIGINS=
 With `ONEMAP_TOKEN` empty and passthrough on, the service has no credential of its own — a request
 without a valid customer token cannot reach any data.
 
-## 3. Start it
+## 4. Start it
 
 ```bash
 sudo cp deploy/onemap8-mcp.service /etc/systemd/system/
@@ -69,7 +103,7 @@ curl -s localhost:3000/mcp/health      # {"status":"ok",...}
 
 If this works, the hard part is done — everything after it is one Apache edit.
 
-## 4. Expose it through Apache
+## 5. Expose it through Apache
 
 Back up the vhost first:
 
@@ -89,7 +123,7 @@ sudo systemctl reload apache2
 
 If `configtest` fails, fix it or restore the backup. Do not reload on a failed configtest.
 
-## 5. Verify
+## 6. Verify
 
 ```bash
 curl -s https://YOUR-HOST/mcp/health
@@ -107,7 +141,7 @@ Then check the things that actually matter:
 - **A request with no token is refused.**
 - **Another user's token returns only their devices.**
 
-## 6. Give a customer the URL
+## 7. Give a customer the URL
 
 They add a custom connector in Claude (Settings → Connectors) pointing at `https://YOUR-HOST/mcp`,
 and supply their own Onemap8 token from Settings → Preferences.
@@ -124,7 +158,15 @@ sudo journalctl -u onemap8-mcp -f
 sudo systemctl restart onemap8-mcp        # after a rebuild
 ```
 
-Deploy a change: `git pull && npm ci && npm run build && sudo systemctl restart onemap8-mcp`.
+Deploy a change:
+
+```bash
+cd /opt/onemap8-mcp
+sudo -u onemap-mcp git pull
+sudo -u onemap-mcp npm ci
+sudo -u onemap-mcp npm run build
+sudo systemctl restart onemap8-mcp
+```
 
 ## Rolling back
 
