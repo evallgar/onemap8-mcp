@@ -83,9 +83,19 @@ ONEMAP_READONLY=true
 ONEMAP_ALLOW_COMMANDS=false
 ONEMAP_ALLOW_DANGEROUS=false
 
-PORT=3000
+PORT=3100
 ONEMAP_ALLOWED_ORIGINS=
 ```
+
+Check the port is actually free before committing to it — 3000 is a common default and is
+frequently already in use by an application server:
+
+```bash
+ss -tlnp | grep 3100
+```
+
+Empty output means it is free. The service file deliberately does not set `PORT`, so this
+value is the only place it is configured.
 
 With `ONEMAP_TOKEN` empty and passthrough on, the service has no credential of its own — a request
 without a valid customer token cannot reach any data.
@@ -98,7 +108,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now onemap8-mcp
 sudo systemctl status onemap8-mcp
 
-curl -s localhost:3000/mcp/health      # {"status":"ok",...}
+curl -s localhost:3100/mcp/health      # {"status":"ok",...}
 ```
 
 If this works, the hard part is done — everything after it is one Apache edit.

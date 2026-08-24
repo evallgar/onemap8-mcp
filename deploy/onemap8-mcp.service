@@ -27,7 +27,12 @@ RestartSec=5
 # ONEMAP_HTTP_PASSTHROUGH_AUTH=true every request carries its own token, which
 # is what keeps testers scoped to their own OneMap permissions.
 Environment=NODE_ENV=production
-Environment=PORT=3000
+
+# PORT is deliberately NOT set here — it comes from .env in WorkingDirectory.
+# Setting it here would silently win over .env, because real environment
+# variables take precedence over the file. Note that 3000 is a common default
+# and is often already taken (application servers, dev tooling); check with
+# `ss -tlnp | grep <port>` before choosing one.
 
 # This commonly shares a small host with the tracking server itself. A ceiling
 # means a runaway request here gets this process killed rather than letting the
