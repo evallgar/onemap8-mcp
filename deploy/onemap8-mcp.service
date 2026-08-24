@@ -29,6 +29,14 @@ RestartSec=5
 Environment=NODE_ENV=production
 Environment=PORT=3000
 
+# This commonly shares a small host with the tracking server itself. A ceiling
+# means a runaway request here gets this process killed rather than letting the
+# kernel's OOM killer pick a victim — which could be the tracking server.
+# Steady state is well under 150M; raise these if the logs show restarts.
+MemoryHigh=200M
+MemoryMax=300M
+Environment=NODE_OPTIONS=--max-old-space-size=192
+
 # The process only needs outbound HTTPS to the OneMap API and its own port.
 NoNewPrivileges=true
 PrivateTmp=true
