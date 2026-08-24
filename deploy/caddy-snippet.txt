@@ -1,0 +1,42 @@
+# Caddy version of the reverse-proxy rule, for hosts fronted by Caddy rather
+# than Apache. Edit /etc/caddy/Caddyfile.
+#
+# Take the existing site block, which probably looks like:
+#
+#     your-host.example.com {
+#       reverse_proxy localhost:8082
+#     }
+#
+# and turn it into this. Both branches use `handle` so they are mutually
+# exclusive — a bare directive alongside a `handle` block is still evaluated
+# for every request, which would send /mcp to the tracking server as well.
+
+your-host.example.com {
+  handle /mcp* {
+    reverse_proxy localhost:3100
+  }
+
+  handle {
+    reverse_proxy localhost:8082
+  }
+}
+
+# Notes
+# -----
+# - Caddy streams server-sent events correctly by default, so none of Apache's
+#   proxy-nobuffer / no-gzip directives are needed here.
+# - Caddy obtains and renews the certificate automatically; there is no certbot
+#   step and no separate SSL block.
+# - Leave any `:80 { ... }` catch-all block alone. It answers on the bare IP and
+#   is unrelated to this endpoint.
+# - Do not add the Authorization header to any log format — it carries each
+#   customer's token.
+#
+# Apply safely:
+#
+#     sudo cp /etc/caddy/Caddyfile /root/Caddyfile.bak
+#     sudo caddy validate --config /etc/caddy/Caddyfile
+#     sudo systemctl reload caddy
+#
+# `caddy validate` must pass before reloading. Roll back by restoring the
+# backup and reloading again.

@@ -113,7 +113,28 @@ curl -s localhost:3100/mcp/health      # {"status":"ok",...}
 
 If this works, the hard part is done — everything after it is one Apache edit.
 
-## 5. Expose it through Apache
+## 5. Expose it through your reverse proxy
+
+Find out which one actually owns ports 80/443 before editing anything — a host can have both
+installed with only one running:
+
+```bash
+ss -tlnp | grep -E ':(80|443)\s'
+systemctl is-active caddy apache2
+```
+
+### If Caddy
+
+Use [`caddy-snippet.txt`](caddy-snippet.txt):
+
+```bash
+sudo cp /etc/caddy/Caddyfile /root/Caddyfile.bak
+sudo nano /etc/caddy/Caddyfile
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+### If Apache
 
 Back up the vhost first:
 
