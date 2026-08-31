@@ -22,8 +22,8 @@ ya puedes ver, y tus compañeros no pueden ver tu información desde sus cuentas
 Necesitas:
 
 - **Una cuenta activa** en la plataforma de rastreo.
-- **Un plan de ChatGPT que permita conectores personalizados.** Esta función no está disponible en
-  el plan gratuito. Si no encuentras la opción de conectores en la configuración, es por el plan.
+- **Un plan de ChatGPT que permita MCPs personalizados.** Esta función no está disponible en el
+  plan gratuito. Si al buscar `MCP` en la configuración no aparece nada, es por el plan.
 
 ---
 
@@ -48,22 +48,33 @@ de principio a fin. Si lo cortas a la mitad, el conector marcará error.
 
 ---
 
-## Paso 2 — Agrega el conector en ChatGPT
+## Paso 2 — Agrega el MCP en ChatGPT
 
-1. Abre ChatGPT y entra a **Configuración**.
-2. Busca la sección de **Conectores** (Connectors).
-3. Elige la opción para **agregar un conector personalizado**.
-4. En la dirección o URL, escribe exactamente:
+1. Abre la aplicación de ChatGPT y haz clic en **tu nombre de usuario**, luego en
+   **Configuración** (Settings).
+2. En el **buscador de la configuración**, escribe `MCP`.
+3. Selecciona **MCPs**, dentro de la categoría **Plugins**.
+4. En las pestañas de arriba, selecciona la pestaña **MCPs**.
+5. Haz clic en **Agregar** (Add) → **MCP personalizado** (Custom MCP).
+6. Llena los campos así:
 
-   ```
-   https://gps.gdtrackpro.com.mx/mcp
-   ```
+   | Campo | Qué poner |
+   | --- | --- |
+   | **Nombre** | El que quieras, por ejemplo `Rastreo GDTrack` |
+   | **Tipo de conexión** | **Streamable HTTP** |
+   | **URL** | `https://gps.gdtrackpro.com.mx/mcp` |
+   | **Bearer token** | El token que copiaste en el Paso 1 |
 
-5. Cuando te pida autenticación, **pega el token** del Paso 1.
-6. Guarda y espera a que aparezca como conectado.
+7. Haz clic en **Guardar** (Save).
+8. **Cierra ChatGPT por completo y vuelve a abrirlo.**
 
-La ubicación exacta del menú cambia según la versión y el plan de ChatGPT. Si no encuentras
-"Conectores", revisa también dentro de la configuración avanzada o de desarrollador.
+El último paso no es opcional: si no reinicias la aplicación, el MCP no aparece disponible en la
+conversación aunque lo hayas guardado bien.
+
+Dos detalles que suelen fallar:
+
+- El **tipo de conexión debe ser Streamable HTTP**. Si eliges otro, no conectará.
+- La **URL termina en `/mcp`**, sin diagonal al final.
 
 ---
 
@@ -138,8 +149,10 @@ antes de activarlo.
 | --- | --- | --- |
 | `Unauthorized` o error 401 | El token venció o fue cancelado | Genera uno nuevo en Configuración → Preferencias |
 | Dice que el token es inválido o está mal formado | Se copió incompleto | Cópialo otra vez, completo, y vuelve a pegarlo |
-| No aparece la opción de conectores | Tu plan de ChatGPT no la incluye | Requiere un plan de paga |
-| Responde que no encuentra herramientas | El conector no quedó guardado | Revisa que la dirección esté exacta y vuelve a conectarlo |
+| No aparece la opción de MCPs | Tu plan de ChatGPT no la incluye | Requiere un plan de paga |
+| Guardaste el MCP pero no aparece en el chat | Falta reiniciar | Cierra ChatGPT por completo y vuelve a abrirlo |
+| No conecta y la URL está bien | Tipo de conexión equivocado | Debe ser **Streamable HTTP** |
+| Responde que no encuentra herramientas | No se reinició la app, o la URL está mal | Verifica la URL y reinicia ChatGPT |
 | Dice que no encuentra una unidad | Tu cuenta no tiene acceso a esa unidad | Pídele a tu administrador que te dé permiso |
 | Responde "0 unidades" y sabes que sí tienes | Puede ser un error del sistema | Repórtalo con la pregunta exacta que hiciste |
 
